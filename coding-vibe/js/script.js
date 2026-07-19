@@ -628,11 +628,58 @@ window.filterInterviewQuestions = function() {
 };
 
 window.downloadRoadmapFile = function(roadmapId) {
-  showToast(`Downloading high-resolution ${roadmapId} roadmap PDF...`);
-  // Mock standard download trigger
+  const roadmap = ROADMAPS.find(r => r.id === roadmapId);
+  if (!roadmap) {
+    showToast("Roadmap not found!");
+    return;
+  }
+
+  showToast(`Generating ${roadmap.title}...`);
+
+  // Build a nicely formatted text version of the roadmap
+  let content = '';
+  content += '═'.repeat(60) + '\n';
+  content += `  ${roadmap.title.toUpperCase()}\n`;
+  content += '  Coding_Vibe — Learn. Build. Grow.\n';
+  content += '  https://coding-vibe.vercel.app\n';
+  content += '═'.repeat(60) + '\n\n';
+  content += `  Path: ${roadmap.steps}\n\n`;
+  content += '─'.repeat(60) + '\n\n';
+
+  roadmap.detailedSteps.forEach((step, idx) => {
+    content += `  STEP ${idx + 1}: ${step.name.toUpperCase()}\n`;
+    content += '  ' + '─'.repeat(40) + '\n';
+    content += `  ${step.desc}\n\n`;
+    content += '  Topics to cover:\n';
+    step.topics.forEach((topic, tIdx) => {
+      content += `    ${tIdx + 1}. ${topic}\n`;
+    });
+    content += `\n  📎 Resource: ${step.resource}\n`;
+    content += '\n' + '─'.repeat(60) + '\n\n';
+  });
+
+  content += '\n  ✅ Follow this roadmap step by step.\n';
+  content += '  📸 Follow @coding_vieb on Instagram for daily tips.\n';
+  content += '  💬 Join Telegram: https://t.me/coding_vieb\n';
+  content += '  🔗 GitHub: https://github.com/Chetansharma74\n\n';
+  content += '═'.repeat(60) + '\n';
+  content += '  © Coding_Vibe — All rights reserved.\n';
+  content += '═'.repeat(60) + '\n';
+
+  // Create downloadable file
+  const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `Coding_Vibe_${roadmap.title.replace(/\s+/g, '_')}.txt`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+
   setTimeout(() => {
-    showToast("Download started successfully!");
-  }, 1000);
+    showToast(`${roadmap.title} downloaded successfully!`);
+  }, 500);
 };
 
 /* Super lightweight markdown-to-html formatter for Notes */
@@ -666,3 +713,43 @@ function renderMarkdownHtml(mdText) {
   }
   return parts.join('');
 }
+
+/* ---------------- Lazy Load Images (blur-up effect) ---------------- */
+(function(){
+  const lazyImages = document.querySelectorAll('img[loading="lazy"]');
+
+  function onImageLoad(img) {
+    img.classList.add('loaded');
+  }
+
+  if ('IntersectionObserver' in window) {
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          const img = entry.target;
+          // If image is already cached/loaded
+          if (img.complete && img.naturalHeight > 0) {
+            onImageLoad(img);
+          } else {
+            img.addEventListener('load', () => onImageLoad(img));
+            img.addEventListener('error', () => {
+              img.style.display = 'none';
+            });
+          }
+          observer.unobserve(img);
+        }
+      });
+    }, { rootMargin: '100px' });
+
+    lazyImages.forEach(img => observer.observe(img));
+  } else {
+    // Fallback for browsers without IntersectionObserver
+    lazyImages.forEach(img => {
+      if (img.complete) {
+        onImageLoad(img);
+      } else {
+        img.addEventListener('load', () => onImageLoad(img));
+      }
+    });
+  }
+})();
